@@ -7,3 +7,4 @@ schedule
 numpy
 setuptools
 python-dotenv
+importlib-metadata
