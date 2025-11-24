@@ -9,6 +9,8 @@ import google.generativeai as genai
 import sys
 import sqlite3
 from dotenv import load_dotenv
+import sounddevice as sd
+import soundfile as sf
 
 load_dotenv() # Load environment variables from .env file
 
@@ -18,6 +20,11 @@ VOICEVOX_URL = "http://127.0.0.1:50021"
 SPEAKER_ID = 46  # 小夜/Sayo
 DB_PATH = "sayo_log.db"
 GEMINI_MODEL_NAME = "gemini-2.5-flash"
+
+# --- Logging Mode ---
+# True: 詳細な開発者ログを出力 (Maker Mode)
+# False: ご主人と小夜の会話のみ出力 (Use Mode)
+IS_MAKER_MODE = False 
 
 SYSTEM_INSTRUCTION = """
 あなたはVOICEVOXのキャラクター「小夜（さよ）」です。
@@ -46,7 +53,12 @@ def get_timestamp():
     return datetime.datetime.now().strftime("[%H:%M:%S]")
 
 def log_message(message):
-    print(f"{get_timestamp()} {message}")
+    if IS_MAKER_MODE:
+        print(f"{get_timestamp()} {message}")
+
+def print_separator():
+    if IS_MAKER_MODE:
+        print("######")
 
 # --- Database Functions ---
 def init_db():
@@ -149,6 +161,17 @@ def synthesize_speech(text, speaker_id=SPEAKER_ID, filename="output.wav"):
     log_message(f"Speech synthesized and saved to {filename}")
     return filename
 
+def play_audio(audio_path):
+    """Plays an audio file."""
+    if not audio_path or not os.path.exists(audio_path):
+        log_message("再生する音声ファイルが見つかりません。")
+        return
+    log_message(f"Playing audio from {audio_path}...")
+    data, samplerate = sf.read(audio_path)
+    sd.play(data, samplerate)
+    sd.wait()
+    log_message("Audio playback finished.")
+
 def main():
     log_message("Starting Sayo CLI Prototype (Text-Only Version)...")
     try:
@@ -157,12 +180,9 @@ def main():
         log_message("\nSayo is ready. メッセージを入力してください ('exit'で終了)。")
         
         while True:
-            try:
-                user_input = input("ご主人 > ")
-            except (KeyboardInterrupt, EOFError):
-                log_message("\nInterrupted by user. Shutting down...")
-                break
-
+            # ご主人からの入力を直接表示
+            user_input = input("ご主人 > ")
+            
             if user_input.lower() == 'exit':
                 log_message("Exit command received. Shutting down...")
                 break
@@ -170,11 +190,13 @@ def main():
             if not user_input.strip():
                 continue
 
-            log_message("\n--- [PROCESS START] ---")
+            if IS_MAKER_MODE:
+                log_message("\n--- [PROCESS START] ---")
             
             gemini_response_text = think_with_gemini(gemini_model, user_input)
             
-            print(f"小夜 > {gemini_response_text}") # Display Sayo's response text
+            # 小夜の応答を直接表示
+            print(f"小夜 > {gemini_response_text}")
 
             # Log the conversation to DB
             log_conversation(user_input, gemini_response_text)
@@ -186,9 +208,12 @@ def main():
                     log_message(">>> [LOG] 音声再生中...")
                     play_audio(synthesized_audio_path)
             
-            log_message("--- [PROCESS END] ---")
-            print("######") # 区切り線
+            if IS_MAKER_MODE:
+                log_message("--- [PROCESS END] ---")
+                print_separator()
 
+    except (KeyboardInterrupt, EOFError):
+        log_message("\nInterrupted by user. Shutting down...")
     except Exception as e:
         log_message(f"An error occurred: {e}")
         sys.exit(1)

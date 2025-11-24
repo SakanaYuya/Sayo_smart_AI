@@ -11,7 +11,7 @@
 - [x] Whisper -> Gemini API連携テスト
 - [x] VOICEVOX APIの単体動作確認
 - [x] Whisperモデルのアップグレード (small -> medium)
-- [ ] `sayo_core.py` のリファクタリング（CLIプロトタイプの安定化）
+- [ ] `sayo_core_voice.py` のリファクタリング（CLIプロトタイプの安定化）
     - [x] 起動ホットワードの追加（さよち）
     - [x] テキスト/音声による終了機能の実装
     - [x] リアルタイム処理ログの改善
@@ -32,35 +32,39 @@
 └── backend/
     ├── .env (機密情報：Git管理対象外)
     ├── requirements.txt
-    ├── sayo_core.py
+    ├── sayo_core_voice.py
+    ├── sayo_core_text.py
     ├── sayo_log.db (実行時に生成)
     └── venv/
 ```
 
 ## 実装状況サマリー
 
-### `sayo_core.py`
+### `sayo_core_voice.py` (音声対話版)
 CLIプロトタイプとしての基本機能は一通り実装済みです。
 
 - **実装済み機能**:
-    - [x] 音声認識 (Whisper: mediumモデル) - **動作確認済み**
-    - [x] 思考エンジン (Gemini) - **動作確認済み**
-    - [x] 音声合成 (VOICEVOX) - **動作確認済み**
+    - [x] 音声認識 (Whisper: smallモデル)
+    - [x] 思考エンジン (Gemini: gemini-2.5-flash)
+    - [x] 音声合成 (VOICEVOX)
     - [x] 音声入出力 (マイク/スピーカー)
     - [x] 時報機能 (毎時0分)
     - [x] 会話ログDB保存 (SQLite)
 
-- **課題・未実装**:
-    - <del>`requirements.txt` に `numpy` や `setuptools` が明記されていない。依存関係で自動的にインストールされる可能性はあるが、要確認。</del> (対応済み)
-    - <del>APIキーなどの設定値がハードコードされている。</del> (`.env`ファイルに分離済み)
+### `sayo_core_text.py` (テキスト対話版)
+`sayo_core_voice.py`から音声認識機能を削除した軽量版。
+
+- **実装済み機能**:
+    - [x] テキスト入力による対話
+    - [x] 思考エンジン (Gemini: gemini-2.5-flash)
+    - [x] 音声合成・自動再生 (VOICEVOX)
+    - [x] 会話ログDB保存 (SQLite)
+
+- **課題・未実装 (共通)**:
     - [ ] コードが単一ファイルに集約されており、将来的な拡張性のためクラス化やモジュール分割を検討する必要がある。
-    - [ ] 設定値（ファイルパスなど）がハードコードされている。
     - [ ] テストコードが未実装。
-    - [ ] 高度な音声処理（無音検知、ストリーミング録音）の実装。
 
 ### `requirements.txt`
-主要なライブラリはリストアップされ、設計書との整合性が取れました。
-
 - **リストされているライブラリ**:
     - `openai-whisper`
     - `google-generativeai`
@@ -71,14 +75,10 @@ CLIプロトタイプとしての基本機能は一通り実装済みです。
     - `numpy`
     - `setuptools`
     - `python-dotenv`
-
-- **課題**:
-    - <del>設計書にある `pyaudio`, `numpy`, `setuptools` が記載されていない。動作に問題がないか確認が必要。</del>
-    - `pyaudio`は`sounddevice`で代替しているため、現状は問題ないと判断。
+    - `importlib-metadata`
 
 ## 動作確認
 - [x] Whisper (音声認識) - `ffmpeg`インストール後、正常に動作することを確認。
-- [x] Gemini API (思考エンジン) - `gemini-1.5-flash`モデルで正常に動作することを確認。
+- [x] Gemini API (思考エンジン) - `gemini-2.5-flash`モデルで正常に動作することを確認。
 - [x] Whisper -> Gemini API連携 - 正常に動作することを確認。
 - [x] VOICEVOX API (音声合成) - テキスト送信と音声再生が正常に動作することを確認。
-- [ ] Whisperモデル (medium) のロードと動作確認。
