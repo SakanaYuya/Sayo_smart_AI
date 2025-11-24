@@ -25,7 +25,7 @@
 
 ## プロジェクト構造
 ```
-/Users/yuuyasakata/programs/personal/sayo_project/Sayo_smart_AI/
+~~~/programs/personal/sayo_project/Sayo_smart_AI/
 ├── .gitignore
 ├── README.md
 ├── gemini.md  (このファイル)
