@@ -3,3 +3,7 @@ google-generativeai
 requests
 sounddevice
 soundfile
+schedule
+numpy
+setuptools
+python-dotenv

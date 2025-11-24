@@ -7,6 +7,7 @@ env/
 # --- 2. 機密情報・設定 ---
 # APIキーを含んでいるファイルは絶対にGitに上げない
 .env
+backend/.env
 start.command
 
 # --- 3. Pythonキャッシュ・コンパイル ---
