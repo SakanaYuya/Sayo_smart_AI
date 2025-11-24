@@ -279,7 +279,7 @@ def main():
 
         print("\nSayo is ready. 話しかけてください (または 'exit' と入力して終了)。")
         # 簡易的なホットワード検出のためのフラグ
-        sayo_activated = False 
+        sayo_activated = False
 
         while True:
             recorded_audio_path = listen_and_record_speech()

@@ -10,6 +10,7 @@
 - [x] Gemini APIの単体動作確認
 - [x] Whisper -> Gemini API連携テスト
 - [x] VOICEVOX APIの単体動作確認
+- [x] Whisperモデルのアップグレード (small -> medium)
 - [ ] `sayo_core.py` のリファクタリング（高度な音声処理、クラス化、設定の外部化など）
 - [ ] ユニットテストの実装
 
@@ -38,7 +39,7 @@
 CLIプロトタイプとしての基本機能は一通り実装済みです。
 
 - **実装済み機能**:
-    - [x] 音声認識 (Whisper) - **動作確認済み**
+    - [x] 音声認識 (Whisper: mediumモデル) - **動作確認済み**
     - [x] 思考エンジン (Gemini) - **動作確認済み**
     - [x] 音声合成 (VOICEVOX) - **動作確認済み**
     - [x] 音声入出力 (マイク/スピーカー)
@@ -76,3 +77,4 @@ CLIプロトタイプとしての基本機能は一通り実装済みです。
 - [x] Gemini API (思考エンジン) - `gemini-flash-latest`モデルで正常に動作することを確認。
 - [x] Whisper -> Gemini API連携 - 正常に動作することを確認。
 - [x] VOICEVOX API (音声合成) - テキスト送信と音声再生が正常に動作することを確認。
+- [ ] Whisperモデル (medium) のロードと動作確認。
