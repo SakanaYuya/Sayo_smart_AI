@@ -11,11 +11,12 @@
 - [x] Whisper -> Gemini API連携テスト
 - [x] VOICEVOX APIの単体動作確認
 - [x] Whisperモデルのアップグレード (small -> medium)
-- [ ] `sayo_core_voice.py` のリファクタリング（CLIプロトタイプの安定化）
+- [x] `sayo_core_voice.py` のリファクタリング（CLIプロトタイプの安定化）
     - [x] 起動ホットワードの追加（さよち）
     - [x] テキスト/音声による終了機能の実装
     - [x] リアルタイム処理ログの改善
     - [x] （完了）`sayo_core_voice.py` のクラス化とモジュール分割（`main_voice.py`, `config.py`, `handlers/`, `utils/` へ）
+    - [x] `sayo_core_text.py` の機能を `main_text.py` へ移植
 - [ ] ユニットテストの実装
 
 ## [残タスク]

@@ -25,6 +25,9 @@ MAX_RECORD_DURATION = 30
 # --- Database ---
 DB_PATH = "sayo_log.db"
 
+# --- Logging Mode ---
+IS_MAKER_MODE = False # True: 詳細な開発者ログを出力 (Maker Mode), False: ご主人と小夜の会話のみ出力 (Use Mode)
+
 # --- System Instruction for Gemini ---
 SYSTEM_INSTRUCTION = """
 あなたはVOICEVOXのキャラクター「小夜（さよ）」です。

@@ -2,20 +2,36 @@
 
 import sys
 import threading
-import schedule
 import time
 import datetime
+import os
+import sounddevice as sd
+import soundfile as sf
 
 # Import configurations and handlers
 import config
-from utils.logging_config import log_message
+from utils.logging_config import log_message, print_separator
 from handlers.gemini_handler import GeminiHandler
 from handlers.voicevox_handler import VoicevoxHandler
 from handlers.database_handler import DatabaseHandler
 
+def play_audio(audio_path):
+    """Plays an audio file using sounddevice."""
+    if not audio_path or not os.path.exists(audio_path):
+        log_message("再生する音声ファイルが見つかりません。")
+        return
+    log_message(f"Playing audio from {audio_path}...")
+    try:
+        data, samplerate = sf.read(audio_path)
+        sd.play(data, samplerate)
+        sd.wait()
+        log_message("Audio playback finished.")
+    except Exception as e:
+        log_message(f"Error playing audio: {e}")
+
 class SayoTextApplication:
     def __init__(self):
-        log_message("Initializing Sayo Text Mode...")
+        log_message("Starting Sayo CLI Prototype (Text-Only Version)...")
         try:
             # Load handlers
             self.gemini_handler = GeminiHandler(
@@ -39,40 +55,19 @@ class SayoTextApplication:
             log_message(f"An unexpected error occurred during initialization: {e}")
             sys.exit(1)
 
-    def _announce_time(self):
-        """Announces the current time."""
-        now = datetime.datetime.now()
-        time_text = f"{now.hour}時です"
-        log_message(f"Announcing time: {time_text}")
-        try:
-            time_audio_path = self.voicevox_handler.synthesize_speech(
-                time_text, filename="time_text_mode.wav"
-            )
-            # In text mode, we'll just log that audio was synthesized, not play automatically
-            # If automatic playback is desired, an audio play function would be needed here.
-            log_message("Time announcement audio synthesized (not auto-played in text mode).")
-        except Exception as e:
-            log_message(f"Error during time announcement: {e}")
-
-    def _run_scheduler(self):
-        """Runs the scheduler in a loop in a separate thread."""
-        schedule.every().hour.at(":00").do(self._announce_time)
-        while self.is_running:
-            schedule.run_pending()
-            time.sleep(1)
+    # Note: Text mode does not use scheduled announcements by default, 
+    # but the logic is kept for consistency if needed later.
+    # For this reproduction, we will not run a scheduler by default.
+    # If scheduling is required, `self._run_scheduler()` should be called in `run()`. 
 
     def run(self):
         """Main application loop for text mode."""
-        log_message("\nSayo Text Mode is ready. 何か話しかけてください (終了するには 'exit' と入力):")
-
-        # Start the scheduler in a background thread
-        scheduler_thread = threading.Thread(target=self._run_scheduler)
-        scheduler_thread.daemon = True
-        scheduler_thread.start()
+        log_message("\nSayo is ready. メッセージを入力してください ('exit'で終了)。")
 
         while self.is_running:
             try:
-                user_input = input("ご主人: ").strip()
+                # ご主人からの入力を直接表示
+                user_input = input("ご主人 > ").strip()
                 
                 if user_input.lower() == 'exit':
                     log_message("Exit command received. Shutting down...")
@@ -82,26 +77,27 @@ class SayoTextApplication:
                 if not user_input:
                     continue
 
-                log_message("\n--- [PROCESS START] ---")
-                log_message(f">>> [User] Input: {user_input}")
+                if config.IS_MAKER_MODE:
+                    log_message("\n--- [PROCESS START] ---")
+                
+                gemini_response_text = self.gemini_handler.think(user_input)
+                
+                # 小夜の応答を直接表示
+                print(f"小夜 > {gemini_response_text}")
 
-                response_text = self.gemini_handler.think(user_input)
-                log_message(f">>> [Gemini] Responded: {response_text}")
+                # Log the conversation to DB
+                self.db_handler.log_conversation(user_input, gemini_response_text)
 
-                if response_text:
-                    self.db_handler.log_conversation(user_input, response_text)
-                    
-                    # Synthesize and play response (text mode often plays it)
-                    synthesized_path = self.voicevox_handler.synthesize_speech(response_text, filename="output_text.wav")
-                    if synthesized_path:
-                        # For text mode, we assume a simple playback if a play_audio function is available
-                        # or just rely on the voicevox_handler to save the file.
-                        # As there's no AudioHandler in text mode, we omit direct playback here.
-                        log_message("Synthesized response saved for playback (manual playback if needed).")
-                    
-                print(f"Sayo: {response_text}")
-                log_message("--- [PROCESS END] ---")
-                print("######")
+                if gemini_response_text:
+                    log_message(">>> [LOG] VOICEVOX送信中...")
+                    synthesized_audio_path = self.voicevox_handler.synthesize_speech(gemini_response_text, filename="output_text.wav")
+                    if synthesized_audio_path:
+                        log_message(">>> [LOG] 音声再生中...")
+                        play_audio(synthesized_audio_path)
+                
+                if config.IS_MAKER_MODE:
+                    log_message("--- [PROCESS END] ---")
+                    print_separator()
 
             except (KeyboardInterrupt, EOFError):
                 log_message("\nInterrupted by user. Shutting down...")
@@ -110,7 +106,7 @@ class SayoTextApplication:
                 log_message(f"An error occurred in main loop: {e}")
                 self.is_running = False
 
-        log_message("Sayo Text Mode is shutting down.")
+        log_message("Sayo is offline.")
 
 def main():
     try:
