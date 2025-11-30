@@ -15,7 +15,7 @@
     - [x] 起動ホットワードの追加（さよち）
     - [x] テキスト/音声による終了機能の実装
     - [x] リアルタイム処理ログの改善
-    - [x] （完了）`sayo_core_voice.py` のクラス化とモジュール分割（`main.py`, `config.py`, `handlers/`, `utils/` へ）
+    - [x] （完了）`sayo_core_voice.py` のクラス化とモジュール分割（`main_voice.py`, `config.py`, `handlers/`, `utils/` へ）
 - [ ] ユニットテストの実装
 
 ## [残タスク]
@@ -50,17 +50,18 @@
     ├── requirements.txt
     ├── sayo_log.db (実行時に生成)
     ├── venv/
-    ├── config.py             <-- (新設) 全体設定
-    ├── main.py               <-- (新設) アプリケーションのエントリーポイント
-    ├── handlers/             <-- (新設) コア機能モジュール群
+    ├── config.py               <-- (新設) 全体設定
+    ├── main_voice.py           <-- (新設) 音声対話版のエントリーポイント
+    ├── main_text.py            <-- (新設) テキスト対話版のエントリーポイント
+    ├── handlers/               <-- (新設) コア機能モジュール群
     │   ├── __init__.py
-    │   ├── audio_handler.py    (音声入出力、Whisper)
-    │   ├── gemini_handler.py   (Gemini連携)
-    │   ├── voicevox_handler.py (VOICEVOX連携)
-    │   └── database_handler.py (DB操作)
-    └── utils/                <-- (新設) ユーティリティ機能群
+    │   ├── audio_handler.py      (音声入出力、Whisper)
+    │   ├── gemini_handler.py     (Gemini連携)
+    │   ├── voicevox_handler.py   (VOICEVOX連携)
+    │   └── database_handler.py   (DB操作)
+    └── utils/                  <-- (新設) ユーティリティ機能群
         ├── __init__.py
-        └── logging_config.py   (ロギング、タイムスタンプ)
+        └── logging_config.py     (ロギング、タイムスタンプ)
 
 # 旧ファイル (リファクタリングにより置き換え)
 #   - backend/sayo_core_voice.py
