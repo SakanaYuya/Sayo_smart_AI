@@ -15,7 +15,7 @@
     - [x] 起動ホットワードの追加（さよち）
     - [x] テキスト/音声による終了機能の実装
     - [x] リアルタイム処理ログの改善
-    - [ ] （継続）高度な音声処理、クラス化、設定の外部化など
+    - [x] （完了）`sayo_core_voice.py` のクラス化とモジュール分割（`main.py`, `config.py`, `handlers/`, `utils/` へ）
 - [ ] ユニットテストの実装
 
 ## [残タスク]
@@ -24,6 +24,22 @@
 - [ ] 永続的な会話履歴の管理機能
 
 ## プロジェクト構造
+### リファクタリング前
+```
+~~~/programs/personal/sayo_project/Sayo_smart_AI/
+├── .gitignore
+├── README.md
+├── gemini.md
+└── backend/
+    ├── .env (機密情報：Git管理対象外)
+    ├── requirements.txt
+    ├── sayo_core_voice.py
+    ├── sayo_core_text.py
+    ├── sayo_log.db (実行時に生成)
+    └── venv/
+```
+
+### リファクタリング後（現在の構造）
 ```
 ~~~/programs/personal/sayo_project/Sayo_smart_AI/
 ├── .gitignore
@@ -32,10 +48,23 @@
 └── backend/
     ├── .env (機密情報：Git管理対象外)
     ├── requirements.txt
-    ├── sayo_core_voice.py
-    ├── sayo_core_text.py
     ├── sayo_log.db (実行時に生成)
-    └── venv/
+    ├── venv/
+    ├── config.py             <-- (新設) 全体設定
+    ├── main.py               <-- (新設) アプリケーションのエントリーポイント
+    ├── handlers/             <-- (新設) コア機能モジュール群
+    │   ├── __init__.py
+    │   ├── audio_handler.py    (音声入出力、Whisper)
+    │   ├── gemini_handler.py   (Gemini連携)
+    │   ├── voicevox_handler.py (VOICEVOX連携)
+    │   └── database_handler.py (DB操作)
+    └── utils/                <-- (新設) ユーティリティ機能群
+        ├── __init__.py
+        └── logging_config.py   (ロギング、タイムスタンプ)
+
+# 旧ファイル (リファクタリングにより置き換え)
+#   - backend/sayo_core_voice.py
+#   - backend/sayo_core_text.py
 ```
 
 ## 実装状況サマリー
