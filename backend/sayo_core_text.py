@@ -135,7 +135,9 @@ def log_conversation(user_text, sayo_text):
     log_message("Conversation logged.")
 
 def get_recent_conversations(limit=5):
+dev2_各種情報サイトから情報を取得できるように更新
     # ... (unchanged)
+
     """Fetches the last N conversation turns from the database."""
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -199,6 +201,7 @@ def think_with_gemini(gemini_model, prompt):
             history_text += f"User: {user_text}\nSayo: {sayo_text}\n"
         history_text += "\n"
 
+dev2_各種情報サイトから情報を取得できるように更新
     full_prompt = f"{history_text}[System Info]\n現在時刻: {current_time_str}\n\n[User Input]\n{prompt}"
     log_message(f"Geminiへ送信: {full_prompt}")
 
@@ -245,6 +248,7 @@ def think_with_gemini(gemini_model, prompt):
     except Exception as e:
         log_message(f"Gemini API Error: {e}")
         return "申し訳ありません、エラーが発生しました。"
+
 
 def synthesize_speech(text, speaker_id=SPEAKER_ID, filename="output.wav"):
     """Synthesizes speech using VOICEVOX and saves it."""
