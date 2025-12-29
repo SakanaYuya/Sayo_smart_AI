@@ -11,7 +11,12 @@
 - [x] Whisper -> Gemini API連携テスト
 - [x] VOICEVOX APIの単体動作確認
 - [x] Whisperモデルのアップグレード (small -> medium)
-- [ ] `sayo_core.py` のリファクタリング（高度な音声処理、クラス化、設定の外部化など）
+- [x] `sayo_core_voice.py` のリファクタリング（CLIプロトタイプの安定化）
+    - [x] 起動ホットワードの追加（さよち）
+    - [x] テキスト/音声による終了機能の実装
+    - [x] リアルタイム処理ログの改善
+    - [x] （完了）`sayo_core_voice.py` のクラス化とモジュール分割（`main_voice.py`, `config.py`, `handlers/`, `utils/` へ）
+    - [x] `sayo_core_text.py` の機能を `main_text.py` へ移植
 - [ ] ユニットテストの実装
 
 ## [残タスク]
@@ -20,43 +25,77 @@
 - [ ] 永続的な会話履歴の管理機能
 
 ## プロジェクト構造
+### リファクタリング前
 ```
-/Users/yuuyasakata/programs/personal/sayo_project/Sayo_smart_AI/
+~~~/programs/personal/sayo_project/Sayo_smart_AI/
+├── .gitignore
+├── README.md
+├── gemini.md
+└── backend/
+    ├── .env (機密情報：Git管理対象外)
+    ├── requirements.txt
+    ├── sayo_core_voice.py
+    ├── sayo_core_text.py
+    ├── sayo_log.db (実行時に生成)
+    └── venv/
+```
+
+### リファクタリング後（現在の構造）
+```
+~~~/programs/personal/sayo_project/Sayo_smart_AI/
 ├── .gitignore
 ├── README.md
 ├── gemini.md  (このファイル)
 └── backend/
     ├── .env (機密情報：Git管理対象外)
     ├── requirements.txt
-    ├── sayo_core.py
     ├── sayo_log.db (実行時に生成)
-    └── venv/
+    ├── venv/
+    ├── config.py               <-- (新設) 全体設定
+    ├── main_voice.py           <-- (新設) 音声対話版のエントリーポイント
+    ├── main_text.py            <-- (新設) テキスト対話版のエントリーポイント
+    ├── handlers/               <-- (新設) コア機能モジュール群
+    │   ├── __init__.py
+    │   ├── audio_handler.py      (音声入出力、Whisper)
+    │   ├── gemini_handler.py     (Gemini連携)
+    │   ├── voicevox_handler.py   (VOICEVOX連携)
+    │   └── database_handler.py   (DB操作)
+    └── utils/                  <-- (新設) ユーティリティ機能群
+        ├── __init__.py
+        └── logging_config.py     (ロギング、タイムスタンプ)
+
+# 旧ファイル (リファクタリングにより置き換え)
+#   - backend/sayo_core_voice.py
+#   - backend/sayo_core_text.py
 ```
 
 ## 実装状況サマリー
 
-### `sayo_core.py`
+### `sayo_core_voice.py` (音声対話版)
 CLIプロトタイプとしての基本機能は一通り実装済みです。
 
 - **実装済み機能**:
-    - [x] 音声認識 (Whisper: mediumモデル) - **動作確認済み**
-    - [x] 思考エンジン (Gemini) - **動作確認済み**
-    - [x] 音声合成 (VOICEVOX) - **動作確認済み**
+    - [x] 音声認識 (Whisper: smallモデル)
+    - [x] 思考エンジン (Gemini: gemini-2.5-flash)
+    - [x] 音声合成 (VOICEVOX)
     - [x] 音声入出力 (マイク/スピーカー)
     - [x] 時報機能 (毎時0分)
     - [x] 会話ログDB保存 (SQLite)
 
-- **課題・未実装**:
-    - <del>`requirements.txt` に `numpy` や `setuptools` が明記されていない。依存関係で自動的にインストールされる可能性はあるが、要確認。</del> (対応済み)
-    - <del>APIキーなどの設定値がハードコードされている。</del> (`.env`ファイルに分離済み)
+### `sayo_core_text.py` (テキスト対話版)
+`sayo_core_voice.py`から音声認識機能を削除した軽量版。
+
+- **実装済み機能**:
+    - [x] テキスト入力による対話
+    - [x] 思考エンジン (Gemini: gemini-2.5-flash)
+    - [x] 音声合成・自動再生 (VOICEVOX)
+    - [x] 会話ログDB保存 (SQLite)
+
+- **課題・未実装 (共通)**:
     - [ ] コードが単一ファイルに集約されており、将来的な拡張性のためクラス化やモジュール分割を検討する必要がある。
-    - [ ] 設定値（ファイルパスなど）がハードコードされている。
     - [ ] テストコードが未実装。
-    - [ ] 高度な音声処理（無音検知、ストリーミング録音）の実装。
 
 ### `requirements.txt`
-主要なライブラリはリストアップされ、設計書との整合性が取れました。
-
 - **リストされているライブラリ**:
     - `openai-whisper`
     - `google-generativeai`
@@ -67,14 +106,10 @@ CLIプロトタイプとしての基本機能は一通り実装済みです。
     - `numpy`
     - `setuptools`
     - `python-dotenv`
-
-- **課題**:
-    - <del>設計書にある `pyaudio`, `numpy`, `setuptools` が記載されていない。動作に問題がないか確認が必要。</del>
-    - `pyaudio`は`sounddevice`で代替しているため、現状は問題ないと判断。
+    - `importlib-metadata`
 
 ## 動作確認
 - [x] Whisper (音声認識) - `ffmpeg`インストール後、正常に動作することを確認。
-- [x] Gemini API (思考エンジン) - `gemini-flash-latest`モデルで正常に動作することを確認。
+- [x] Gemini API (思考エンジン) - `gemini-2.5-flash`モデルで正常に動作することを確認。
 - [x] Whisper -> Gemini API連携 - 正常に動作することを確認。
 - [x] VOICEVOX API (音声合成) - テキスト送信と音声再生が正常に動作することを確認。
-- [ ] Whisperモデル (medium) のロードと動作確認。
