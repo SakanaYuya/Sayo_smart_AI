@@ -120,8 +120,16 @@ def think_with_gemini(gemini_model, prompt):
     """Gets a response from Gemini API."""
     if not prompt.strip():
         return ""
-    log_message(f"Sending to Gemini: {prompt}")
-    response = gemini_model.generate_content(prompt)
+    
+    # 現在時刻を取得してプロンプトに追加
+    now = datetime.datetime.now()
+    current_time_str = now.strftime("%Y年%m月%d日 %H時%M分%S秒")
+    
+    # システムからの情報をユーザー入力の前に付与
+    full_prompt = f"[System Info]\n現在時刻: {current_time_str}\n\n[User Input]\n{prompt}"
+
+    log_message(f"Sending to Gemini: {full_prompt}")
+    response = gemini_model.generate_content(full_prompt)
     text = response.text
     log_message(f"Gemini responded: {text}")
     return text
