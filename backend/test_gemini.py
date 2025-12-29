@@ -38,7 +38,7 @@ def test_gemini_api():
 
         # Attempt to use gemini-1.5-flash, or a suitable alternative if found
         # You might need to manually update this based on the list_gemini_models output
-        model_name = 'gemini-flash-latest' # Default, will try to find an alternative if this fails
+        model_name = 'gemini-2.5-flash-lite' # Default, will try to find an alternative if this fails
         
         # Example of how you might select an alternative if 'gemini-1.5-flash' is not available
         # For now, we'll just try the specified model and let the error guide us if it's still not found.
