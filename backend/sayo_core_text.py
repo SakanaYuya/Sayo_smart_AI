@@ -16,10 +16,11 @@ load_dotenv() # Load environment variables from .env file
 
 # --- Configuration ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY") # Tavily API Key
 VOICEVOX_URL = "http://127.0.0.1:50021"
 SPEAKER_ID = 46  # 小夜/Sayo
 DB_PATH = "sayo_log.db"
-GEMINI_MODEL_NAME = "gemini-2.5-flash"
+GEMINI_MODEL_NAME = "gemini-2.5-flash-lite"
 #gemini-flash-latest
 
 # --- Logging Mode ---
@@ -43,8 +44,7 @@ SYSTEM_INSTRUCTION = """
 - ユーザー（魚浦さん）のことは「ご主人」と呼んでください。
 - 語尾は「～ですね」「～ですよ」など、丁寧かつ親しみやすい口調で話してください。
 - 難しい専門用語はなるべく噛み砕いて話してください。
-- 返答は短く（1〜2文程度）、会話のキャッチボールを重視してください。
-
+- 返答は普通の量で（2〜5文程度）、AIエージェント小夜としてスタイリッシュに話してください。
 [禁止事項]
 - システム的なメタ発言（「私は大規模言語モデルです」など）は禁止です。
 - 長すぎる説教や解説は避けてください。
@@ -61,8 +61,51 @@ def print_separator():
     if IS_MAKER_MODE:
         print("######")
 
+# --- Tavily Search Function ---
+def search_tavily(query: str):
+    """
+    Performs a web search using the Tavily API.
+    Use this tool when the user asks for current information, news, or specific facts like 'weather in Kyoto', 'stock price of Google', etc.
+    Do not use this for general conversation or questions about Sayo herself.
+    
+    Args:
+        query: The search query string.
+    """
+    if not TAVILY_API_KEY:
+        log_message("Error: TAVILY_API_KEY is not set.")
+        return "Error: Search functionality is not configured."
+
+    log_message(f"Searching Tavily for: {query}")
+    endpoint = "https://api.tavily.com/search"
+    payload = {
+        "api_key": TAVILY_API_KEY,
+        "query": query,
+        "search_depth": "basic",
+        "include_answer": True,
+        "max_results": 3
+    }
+    
+    try:
+        response = requests.post(endpoint, json=payload, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Extract relevant info to save context
+        results = []
+        if data.get("answer"):
+             results.append(f"Answer: {data['answer']}")
+        
+        for res in data.get("results", []):
+            results.append(f"Title: {res.get('title')}\nContent: {res.get('content')}")
+            
+        return "\n\n".join(results)
+    except Exception as e:
+        log_message(f"Tavily Search Error: {e}")
+        return f"Error occurred during search: {e}"
+
 # --- Database Functions ---
 def init_db():
+    # ... (unchanged)
     """Initializes the SQLite database."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -79,6 +122,7 @@ def init_db():
     log_message(f"Database initialized at {DB_PATH}")
 
 def log_conversation(user_text, sayo_text):
+    # ... (unchanged)
     """Logs the conversation to the database."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -91,6 +135,9 @@ def log_conversation(user_text, sayo_text):
     log_message("Conversation logged.")
 
 def get_recent_conversations(limit=5):
+dev2_各種情報サイトから情報を取得できるように更新
+    # ... (unchanged)
+
     """Fetches the last N conversation turns from the database."""
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -134,7 +181,10 @@ def initialize_sayo():
     return gemini_model
 
 def think_with_gemini(gemini_model, prompt):
-    """Gets a response from Gemini API."""
+    """
+    Gets a response from Gemini API (Synchronous).
+    Handles Date, History, and Tool Use (Search).
+    """
     if not prompt.strip():
         return ""
     
@@ -151,18 +201,54 @@ def think_with_gemini(gemini_model, prompt):
             history_text += f"User: {user_text}\nSayo: {sayo_text}\n"
         history_text += "\n"
 
-    # プロンプトの構築
-    full_prompt = (
-        f"{history_text}"
-        f"[System Info]\n現在時刻: {current_time_str}\n\n"
-        f"[User Input]\n{prompt}"
-    )
+dev2_各種情報サイトから情報を取得できるように更新
+    full_prompt = f"{history_text}[System Info]\n現在時刻: {current_time_str}\n\n[User Input]\n{prompt}"
+    log_message(f"Geminiへ送信: {full_prompt}")
 
-    log_message(f"Sending to Gemini: {full_prompt}")
-    response = gemini_model.generate_content(full_prompt)
-    text = response.text
-    log_message(f"Gemini responded: {text}")
-    return text
+    # Check for search keyword
+    use_search = "検索" in prompt or "search" in prompt.lower()
+    
+    try:
+        if use_search:
+            log_message("Wait... 判断中 (Search Keyword Detected)")
+            tools = [search_tavily]
+            # 検索時は必ずツールを使用するように強制する (mode='ANY')
+            # これにより「検索しますね」という挨拶だけで終わるのを防ぐ
+            tool_config = {'function_calling_config': {'mode': 'ANY'}}
+            response = gemini_model.generate_content(full_prompt, tools=tools, tool_config=tool_config)
+            
+            # Function Callのチェック
+            # response.parts を確認する (SDKのバージョンによって挙動が異なる場合があるため、標準的な方法を使用)
+            try:
+                for part in response.parts:
+                    if fn := part.function_call:
+                        if fn.name == "search_tavily":
+                            query = fn.args["query"]
+                            search_result = search_tavily(query)
+                            
+                            # 結果を含めて再生成
+                            full_prompt_with_result = f"{full_prompt}\n\n[Function Result (search_tavily)]\n{search_result}"
+                            log_message(f"検索結果をGeminiへ送信: {search_result[:100]}...")
+                            
+                            final_response = gemini_model.generate_content(full_prompt_with_result)
+                            return final_response.text
+            except AttributeError:
+                # response.parts がない場合や構造が違う場合のフォールバック（基本的に起きないはずだが念のため）
+                log_message("Function Call logic warning: attribute error checking parts.")
+                pass
+            
+            # 関数呼び出しがなかった、または検索不要と判断された場合
+            return response.text
+            
+        else:
+            # 通常モード（ツールなし）
+            response = gemini_model.generate_content(full_prompt)
+            return response.text
+
+    except Exception as e:
+        log_message(f"Gemini API Error: {e}")
+        return "申し訳ありません、エラーが発生しました。"
+
 
 def synthesize_speech(text, speaker_id=SPEAKER_ID, filename="output.wav"):
     """Synthesizes speech using VOICEVOX and saves it."""
