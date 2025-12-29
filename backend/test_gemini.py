@@ -47,7 +47,7 @@ def test_gemini_api():
         gemini_model = genai.GenerativeModel(model_name)
         print(f"Using Gemini model: {model_name}")
 
-        test_prompt = "voicebox小夜についてコードを教えてください。彼女は何番でapiから叩くことができますか?"
+        test_prompt = "今日は何月何日ですか"
         print(f"Sending prompt to Gemini: '{test_prompt}'")
         response = gemini_model.generate_content(test_prompt)
         

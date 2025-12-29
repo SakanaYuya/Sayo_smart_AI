@@ -20,11 +20,12 @@ VOICEVOX_URL = "http://127.0.0.1:50021"
 SPEAKER_ID = 46  # 小夜/Sayo
 DB_PATH = "sayo_log.db"
 GEMINI_MODEL_NAME = "gemini-2.5-flash"
+#gemini-flash-latest
 
 # --- Logging Mode ---
 # True: 詳細な開発者ログを出力 (Maker Mode)
 # False: ご主人と小夜の会話のみ出力 (Use Mode)
-IS_MAKER_MODE = False 
+IS_MAKER_MODE = True
 
 SYSTEM_INSTRUCTION = """
 あなたはVOICEVOXのキャラクター「小夜（さよ）」です。
