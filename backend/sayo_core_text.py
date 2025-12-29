@@ -90,6 +90,23 @@ def log_conversation(user_text, sayo_text):
     conn.close()
     log_message("Conversation logged.")
 
+def get_recent_conversations(limit=5):
+    """Fetches the last N conversation turns from the database."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT user_text, sayo_text FROM conversation_logs ORDER BY id DESC LIMIT ?",
+            (limit,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        # 取得した順序は新しい順なので、古い順（会話の流れ）に戻す
+        return rows[::-1]
+    except Exception as e:
+        log_message(f"Error fetching history: {e}")
+        return []
+
 # --- Core Sayo Functions ---
 def initialize_sayo():
     """Initializes Sayo's components."""
@@ -121,12 +138,25 @@ def think_with_gemini(gemini_model, prompt):
     if not prompt.strip():
         return ""
     
-    # 現在時刻を取得してプロンプトに追加
+    # 現在時刻を取得
     now = datetime.datetime.now()
     current_time_str = now.strftime("%Y年%m月%d日 %H時%M分%S秒")
     
-    # システムからの情報をユーザー入力の前に付与
-    full_prompt = f"[System Info]\n現在時刻: {current_time_str}\n\n[User Input]\n{prompt}"
+    # 過去の会話履歴を取得 (直近5件)
+    history_rows = get_recent_conversations(limit=5)
+    history_text = ""
+    if history_rows:
+        history_text = "[Conversation History]\n"
+        for user_text, sayo_text in history_rows:
+            history_text += f"User: {user_text}\nSayo: {sayo_text}\n"
+        history_text += "\n"
+
+    # プロンプトの構築
+    full_prompt = (
+        f"{history_text}"
+        f"[System Info]\n現在時刻: {current_time_str}\n\n"
+        f"[User Input]\n{prompt}"
+    )
 
     log_message(f"Sending to Gemini: {full_prompt}")
     response = gemini_model.generate_content(full_prompt)
